@@ -120,4 +120,7 @@ def stop_job(job_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7600)
+    # Loopback only: the MCP server (and, later, the Cloudflare tunnel) is the
+    # remote entry point. Binding to 0.0.0.0 would expose this unauthenticated
+    # job-runner to the whole LAN.
+    uvicorn.run(app, host="127.0.0.1", port=7600)
