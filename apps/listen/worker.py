@@ -103,9 +103,13 @@ def main():
     session_name = f"job-{job_id}"
     token = uuid.uuid4().hex[:8]
 
-    # Build the claude command — read prompt from file to avoid truncation
+    # Build the claude command — read prompt from file to avoid truncation.
+    # --print runs the agent non-interactively: it executes the task, streams
+    # output to the pane, then EXITS with a real code. Interactive mode (no
+    # --print) leaves claude sitting in the TUI after the task, so the sentinel
+    # never fires and the job hangs forever.
     claude_cmd = (
-        f"claude --dangerously-skip-permissions"
+        f"claude --dangerously-skip-permissions --print --output-format text"
         f' --append-system-prompt "$(cat {sys_prompt_tmp})"'
         f' "$(cat {prompt_tmp})"'
     )
