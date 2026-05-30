@@ -12,13 +12,26 @@ import os
 
 import yaml
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from agent_mcp import client
 
 # The local listen FastAPI server. Defaults to loopback; overridable for dev.
 LISTEN_URL = os.environ.get("LISTEN_URL", "http://127.0.0.1:7600")
 
-mcp = FastMCP("mac-mini-agent", host="127.0.0.1", port=7601)
+# Public hostname this MCP is reached at through the Cloudflare tunnel. The MCP
+# SDK's streamable-HTTP transport has DNS-rebinding protection that only allows
+# localhost Host headers by default, so requests proxied in with this Host get
+# 421'd unless we allowlist it. Keep the protection on; just add our host.
+PUBLIC_HOST = os.environ.get("MCP_PUBLIC_HOST", "jobs.moto-meru.com")
+_security = TransportSecuritySettings(
+    allowed_hosts=[PUBLIC_HOST, "127.0.0.1:7601", "localhost:7601"],
+    allowed_origins=[f"https://{PUBLIC_HOST}", "http://127.0.0.1:7601"],
+)
+
+mcp = FastMCP(
+    "mac-mini-agent", host="127.0.0.1", port=7601, transport_security=_security
+)
 
 
 @mcp.tool()
