@@ -1,9 +1,16 @@
 import httpx
 
 
-def start_job(url: str, prompt: str) -> dict:
-    """POST to url/job with prompt, returns response dict."""
-    response = httpx.post(f"{url}/job", json={"prompt": prompt})
+def start_job(
+    url: str, prompt: str, model: str = "", effort: str = ""
+) -> dict:
+    """POST to url/job with prompt (+ optional model/effort), returns response dict."""
+    body: dict = {"prompt": prompt}
+    if model:
+        body["model"] = model
+    if effort:
+        body["effort"] = effort
+    response = httpx.post(f"{url}/job", json=body)
     response.raise_for_status()
     return response.json()
 

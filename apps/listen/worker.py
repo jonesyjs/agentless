@@ -102,13 +102,25 @@ def _wait_for_sentinel(session: str, token: str) -> int:
             return int(match.group(1))
 
 
+def _safe_token(value: str) -> str:
+    """Allow only simple flag-value tokens (model aliases/ids, effort levels).
+
+    Guards against shell injection since these get interpolated into the
+    command sent to tmux. Returns "" for anything unexpected.
+    """
+    value = (value or "").strip()
+    return value if re.fullmatch(r"[A-Za-z0-9._-]+", value) else ""
+
+
 def main():
     if len(sys.argv) < 3:
-        print("Usage: worker.py <job_id> <prompt>")
+        print("Usage: worker.py <job_id> <prompt> [model] [effort]")
         sys.exit(1)
 
     job_id = sys.argv[1]
     prompt = sys.argv[2]
+    model = _safe_token(sys.argv[3]) if len(sys.argv) > 3 else ""
+    effort = _safe_token(sys.argv[4]) if len(sys.argv) > 4 else ""
 
     jobs_dir = Path(__file__).parent / "jobs"
     job_file = jobs_dir / f"{job_id}.yaml"
@@ -139,8 +151,11 @@ def main():
     # output to the pane, then EXITS with a real code. Interactive mode (no
     # --print) leaves claude sitting in the TUI after the task, so the sentinel
     # never fires and the job hangs forever.
+    model_flag = f" --model {model}" if model else ""
+    effort_flag = f" --effort {effort}" if effort else ""
     claude_cmd = (
         f"claude --dangerously-skip-permissions --print --output-format text"
+        f"{model_flag}{effort_flag}"
         f' --append-system-prompt "$(cat {sys_prompt_tmp})"'
         f' "$(cat {prompt_tmp})"'
     )

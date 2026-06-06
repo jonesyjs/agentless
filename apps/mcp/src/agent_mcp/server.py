@@ -35,14 +35,20 @@ mcp = FastMCP(
 
 
 @mcp.tool()
-def submit_job(prompt: str) -> dict:
+def submit_job(prompt: str, model: str = "", effort: str = "") -> dict:
     """Submit a new agent job to the Mac. Returns the new job's id and status.
 
     The prompt is the task the on-device Claude agent will carry out using the
     steer (GUI) and drive (terminal) tools, e.g. "open Safari and read the top
     Hacker News headline".
+
+    Optional knobs (trade speed vs. capability):
+      model:  Claude model for the worker agent — "haiku", "sonnet", or "opus"
+              (or a full id). Default = the CLI's default (opus). Faster models
+              cut the per-step thinking time that dominates GUI tasks.
+      effort: Reasoning effort — "low", "medium", "high", "xhigh". Lower = faster.
     """
-    return client.start_job(LISTEN_URL, prompt)
+    return client.start_job(LISTEN_URL, prompt, model=model, effort=effort)
 
 
 @mcp.tool()
