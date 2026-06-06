@@ -21,6 +21,10 @@ ARCHIVED_DIR = JOBS_DIR / "archived"
 
 class JobRequest(BaseModel):
     prompt: str
+    # Optional per-job model/effort knobs passed through to the worker's
+    # `claude` invocation. None/empty = the CLI default.
+    model: str | None = None
+    effort: str | None = None
 
 
 @app.post("/job")
@@ -32,6 +36,8 @@ def create_job(req: JobRequest):
         "id": job_id,
         "status": "running",
         "prompt": req.prompt,
+        "model": req.model or "",
+        "effort": req.effort or "",
         "created_at": now,
         "pid": 0,
         "updates": [],
@@ -43,10 +49,17 @@ def create_job(req: JobRequest):
     with open(job_file, "w") as f:
         yaml.dump(job_data, f, default_flow_style=False, sort_keys=False)
 
-    # Spawn the worker process
+    # Spawn the worker process. Positional: job_id, prompt, [model], [effort].
     worker_path = Path(__file__).parent / "worker.py"
     proc = subprocess.Popen(
-        [sys.executable, str(worker_path), job_id, req.prompt],
+        [
+            sys.executable,
+            str(worker_path),
+            job_id,
+            req.prompt,
+            req.model or "",
+            req.effort or "",
+        ],
         cwd=str(Path(__file__).parent),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

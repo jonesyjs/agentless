@@ -1,6 +1,6 @@
 # Mac Mini Agent
 
-**macOS automation for AI agents. Direct your agents to steer, drive and listen. [Watch our agent](https://youtu.be/LOazLNQnB80) operate their own device.**
+**macOS automation for AI agents. Direct your agents to steer, drive, and listen — and operate your Mac end to end.**
 
 <p align="center">
   <img src="assets/architecture-v3-animated.svg" alt="Steer Architecture" width="100%"/>
@@ -20,7 +20,7 @@ That gap is **computer use**. And for macOS, the existing tools fall short:
 - **Terminal agents** can run commands but can't see output, recover from errors, or coordinate with GUI tools
 - **No orchestration layer** exists to combine terminal control with GUI automation
 
-The Mac Mini Agent solves this with four purpose-built CLIs.
+The Mac Mini Agent solves this with four purpose-built CLIs and an MCP server.
 
 ## The Solution
 
@@ -30,7 +30,7 @@ The Mac Mini Agent solves this with four purpose-built CLIs.
 
 **When you increase your agent's autonomy, you increase your own.** An agent that can only write code still needs you to test it, deploy it, and verify it. An agent that can see the screen, click buttons, orchestrate terminals, and operate across apps — that agent can ship while you sleep.
 
-Two Skills, Four CLIs. Many Macs. Full agent autonomy.
+Two Skills. Four CLIs. One MCP server. Many Macs. Full agent autonomy.
 
 ---
 
@@ -89,7 +89,7 @@ One command — `steer ocr --store` — and suddenly every piece of text on scre
 
 > Terminal automation CLI for AI agents. Programmatic tmux control.
 
-**Python** · v0.1.0 · 6 commands
+**Python** · v0.1.0 · 7 commands
 
 Drive gives agents full programmatic control over tmux sessions — creating terminals, sending commands, reading output, and orchestrating parallel workloads.
 
@@ -105,6 +105,7 @@ Drive gives agents full programmatic control over tmux sessions — creating ter
 | `logs`    | Capture pane output (capture-pane)                       |
 | `poll`    | Wait for a sentinel marker indicating command completion |
 | `fanout`  | Execute commands across multiple panes in parallel       |
+| `proc`    | Manage processes — list, kill, process tree, `top` snapshots |
 
 #### The Sentinel Pattern
 
@@ -129,6 +130,7 @@ Listen accepts job requests over HTTP, spawns Claude Code agents as worker proce
 | `POST /job`        | Submit a prompt, get back a job ID     |
 | `GET /job/{id}`    | Check job status, updates, and summary |
 | `GET /jobs`        | List all jobs                          |
+| `POST /jobs/clear` | Archive all current jobs               |
 | `DELETE /job/{id}` | Stop a running job                     |
 
 ```bash
@@ -155,8 +157,31 @@ Direct is the command-line interface for sending prompts to Listen. It starts jo
 | `start`  | Submit a new job prompt                |
 | `get`    | Get current state of a job             |
 | `list`   | List all jobs                          |
+| `clear`  | Archive all jobs                       |
 | `latest` | Show full details of the latest N jobs |
 | `stop`   | Stop a running job                     |
+
+---
+
+### MCP — Remote Agent Bridge
+
+> MCP server that exposes the Listen API to Claude.ai, Claude Desktop, and Claude Code.
+
+**Python** · v0.1.0 · FastMCP · streamable-HTTP
+
+MCP is the counterpart to Direct: instead of a CLI, it speaks the Model Context Protocol, so any MCP client can submit and manage jobs on the Mac directly. It runs on `127.0.0.1:7601` and is fronted by a Cloudflare Access tunnel for remote auth.
+
+| Tool         | Purpose                                                  |
+| ------------ | -------------------------------------------------------- |
+| `submit_job` | Submit a prompt (optional `model`/`effort`), get a job ID |
+| `get_job`    | Get the full current state of one job                    |
+| `list_jobs`  | List all jobs (or archived with `archived=true`)         |
+| `stop_job`   | Stop a running job and mark it stopped                   |
+| `clear_jobs` | Archive all current jobs                                 |
+
+```bash
+just mcp    # Start the MCP server on port 7601
+```
 
 ---
 
@@ -244,11 +269,18 @@ mac-mini-agent/
 │   │   └── Sources/
 │   │       └── steer/  # 14 command implementations
 │   ├── drive/          # Python CLI — tmux terminal control
-│   │   └── commands/   # 6 command implementations
+│   │   ├── commands/   # 7 command implementations
+│   │   └── modules/    # tmux, process, sentinel helpers
 │   ├── listen/         # Python — FastAPI job server
 │   │   ├── jobs/       # YAML job state files
 │   │   └── worker.py   # Agent spawner
-│   └── direct/         # Python — CLI client for Listen
+│   ├── direct/         # Python — CLI client for Listen
+│   │   └── src/direct/
+│   └── mcp/            # Python — MCP server (Listen API for MCP clients)
+│       └── src/agent_mcp/
+├── specs/              # Task prompts / specs for jobs
+├── .claude/            # Skills, slash commands, and agent prompts
+├── justfile            # Task runner recipes
 └── assets/
     ├── architecture-v3.svg
     ├── architecture-v3-animated.svg
@@ -321,9 +353,6 @@ ssh <user>@<hostname>.local
 
 ---
 
-## Master Agentic Coding
-> Prepare for the future of software engineering
+## Author
 
-Software engineering has changed... **Have you**? Catch up and move beyond the AI tech industry with [Tactical Agentic Coding](https://agenticengineer.com/tactical-agentic-coding?y=mmag)
-
-Follow the [IndyDevDan YouTube channel](https://www.youtube.com/@indydevdan) to improve your agentic coding advantage.
+Built and maintained by **Simon Jones** ([@jonesyjs](https://github.com/jonesyjs)).
